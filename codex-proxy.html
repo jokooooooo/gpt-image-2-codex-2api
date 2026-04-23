@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codex OpenAI Proxy Console</title>
+    <style>
+      :root {
+        --bg: #0f1411;
+        --paper: #f3efe2;
+        --ink: #162017;
+        --muted: #697264;
+        --line: rgba(22, 32, 23, 0.16);
+        --green: #176f4d;
+        --lime: #d5ff5f;
+        --orange: #ff8b3d;
+        --red: #c94c42;
+        --shadow: 0 30px 90px rgba(13, 18, 14, 0.22);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 12% 10%, rgba(213, 255, 95, 0.34), transparent 24rem),
+          radial-gradient(circle at 85% 5%, rgba(255, 139, 61, 0.18), transparent 20rem),
+          linear-gradient(135deg, #efe7d1, #f8f5ea 52%, #dcebd2);
+        font-family: "Aptos Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+      }
+
+      .wrap {
+        width: min(1180px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 28px 0 44px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+        align-items: stretch;
+        margin-bottom: 18px;
+      }
+
+      .hero,
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgba(243, 239, 226, 0.78);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .hero {
+        padding: 30px;
+      }
+
+      .hero small,
+      label span,
+      .meta {
+        color: var(--muted);
+      }
+
+      .hero h1 {
+        max-width: 10ch;
+        margin: 12px 0 14px;
+        font-size: clamp(42px, 7vw, 86px);
+        line-height: 0.86;
+        letter-spacing: -0.08em;
+      }
+
+      .hero p {
+        max-width: 620px;
+        margin: 0;
+        color: #344033;
+        font-size: 17px;
+        line-height: 1.6;
+      }
+
+      .status-card {
+        display: grid;
+        gap: 12px;
+        align-content: space-between;
+        padding: 22px;
+        background: #122017;
+        color: #eef5e8;
+      }
+
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        border-radius: 999px;
+        padding: 7px 12px;
+        background: rgba(213, 255, 95, 0.14);
+        color: var(--lime);
+        font-size: 13px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 18px currentColor;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(310px, 410px) 1fr;
+        gap: 18px;
+      }
+
+      .card {
+        padding: 22px;
+      }
+
+      .controls {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      input,
+      textarea,
+      select,
+      button {
+        font: inherit;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        background: rgba(255, 255, 255, 0.54);
+        color: var(--ink);
+        padding: 13px 14px;
+        outline: none;
+      }
+
+      textarea {
+        min-height: 150px;
+        resize: vertical;
+        line-height: 1.55;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: rgba(23, 111, 77, 0.68);
+        box-shadow: 0 0 0 4px rgba(23, 111, 77, 0.09);
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 13px 16px;
+        cursor: pointer;
+        color: #fff;
+        background: var(--green);
+        transition: transform 160ms ease, opacity 160ms ease;
+      }
+
+      button.secondary {
+        color: var(--ink);
+        background: var(--lime);
+      }
+
+      button.ghost {
+        color: var(--ink);
+        background: transparent;
+        border: 1px solid var(--line);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.62;
+        transform: none;
+      }
+
+      .output {
+        display: grid;
+        gap: 18px;
+      }
+
+      .preview {
+        min-height: 420px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background:
+          linear-gradient(45deg, rgba(22, 32, 23, 0.04) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(22, 32, 23, 0.04) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(22, 32, 23, 0.04) 75%),
+          linear-gradient(-45deg, transparent 75%, rgba(22, 32, 23, 0.04) 75%);
+        background-size: 26px 26px;
+        background-position: 0 0, 0 13px, 13px -13px, -13px 0;
+      }
+
+      .preview img {
+        max-width: 100%;
+        max-height: 72vh;
+        border-radius: 20px;
+        box-shadow: 0 26px 70px rgba(22, 32, 23, 0.24);
+      }
+
+      .empty {
+        max-width: 360px;
+        text-align: center;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      pre {
+        min-height: 170px;
+        max-height: 360px;
+        overflow: auto;
+        margin: 0;
+        border-radius: 18px;
+        padding: 15px;
+        background: #111a13;
+        color: #d6f5cc;
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .text-result {
+        min-height: 120px;
+        color: #1e2c20;
+        line-height: 1.7;
+        white-space: pre-wrap;
+      }
+
+      .toast {
+        min-height: 24px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .toast.error {
+        color: var(--red);
+      }
+
+      @media (max-width: 860px) {
+        header,
+        main,
+        .grid-2,
+        .actions {
+          grid-template-columns: 1fr;
+        }
+
+        .hero h1 {
+          max-width: 100%;
+          font-size: 46px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <section class="hero">
+          <small>Local Codex Console</small>
+          <h1>OpenAI Proxy Tester</h1>
+          <p>
+            一个本地 HTML 测试页，用来调用你的 Codex OpenAI 兼容代理。支持
+            <code>/v1/chat/completions</code> 和 <code>/v1/images/generations</code>。
+          </p>
+        </section>
+
+        <section class="card status-card">
+          <div>
+            <span class="pill"><span class="dot"></span><span id="healthText">未检测</span></span>
+          </div>
+          <div>
+            <div class="status-row"><span>Base URL</span><strong id="baseUrlView">--</strong></div>
+            <div class="status-row"><span>Text model</span><strong>codex-cli</strong></div>
+            <div class="status-row"><span>Image model</span><strong>codex-imagegen</strong></div>
+          </div>
+          <button class="secondary" id="checkHealthBtn">检测服务</button>
+        </section>
+      </header>
+
+      <main>
+        <section class="card controls">
+          <label class="field">
+            <span>代理地址</span>
+            <input id="baseUrl" value="http://localhost:4100" />
+          </label>
+
+          <label class="field">
+            <span>可选 Bearer Token</span>
+            <input id="apiKey" type="password" placeholder="CONFIG.requiredApiKey 为空则不用填" />
+          </label>
+
+          <label class="field">
+            <span>模式</span>
+            <select id="mode">
+              <option value="image">图片生成</option>
+              <option value="chat">文本对话</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Prompt</span>
+            <textarea id="prompt">生成一个简单的蓝色方形图标，不要文字</textarea>
+          </label>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>数量 n</span>
+              <input id="count" type="number" min="1" max="10" value="1" />
+            </label>
+            <label class="field">
+              <span>尺寸提示</span>
+              <input id="size" value="1024x1024" />
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="runBtn">发送请求</button>
+            <button class="ghost" id="downloadBtn" disabled>下载图片</button>
+          </div>
+
+          <div id="toast" class="toast">等待操作。</div>
+        </section>
+
+        <section class="output">
+          <article class="card preview" id="preview">
+            <div class="empty">
+              图片结果会显示在这里。第一次生成通常较慢，因为底层会启动
+              <code>codex exec '$imagegen ...'</code>。
+            </div>
+          </article>
+
+          <article class="card">
+            <p class="meta">文本结果</p>
+            <div id="textResult" class="text-result">--</div>
+          </article>
+
+          <article class="card">
+            <p class="meta">原始响应</p>
+            <pre id="raw">{}</pre>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const el = {
+        baseUrl: document.querySelector("#baseUrl"),
+        baseUrlView: document.querySelector("#baseUrlView"),
+        apiKey: document.querySelector("#apiKey"),
+        mode: document.querySelector("#mode"),
+        prompt: document.querySelector("#prompt"),
+        count: document.querySelector("#count"),
+        size: document.querySelector("#size"),
+        runBtn: document.querySelector("#runBtn"),
+        downloadBtn: document.querySelector("#downloadBtn"),
+        checkHealthBtn: document.querySelector("#checkHealthBtn"),
+        healthText: document.querySelector("#healthText"),
+        preview: document.querySelector("#preview"),
+        textResult: document.querySelector("#textResult"),
+        raw: document.querySelector("#raw"),
+        toast: document.querySelector("#toast"),
+      };
+
+      let lastImageDataUrl = "";
+
+      if (location.protocol === "http:" || location.protocol === "https:") {
+        el.baseUrl.value = location.origin;
+      }
+
+      updateBaseUrlView();
+      el.baseUrl.addEventListener("input", updateBaseUrlView);
+      el.runBtn.addEventListener("click", run);
+      el.downloadBtn.addEventListener("click", downloadImage);
+      el.checkHealthBtn.addEventListener("click", checkHealth);
+
+      function updateBaseUrlView() {
+        el.baseUrlView.textContent = normalizeBaseUrl();
+      }
+
+      function normalizeBaseUrl() {
+        return el.baseUrl.value.trim().replace(/\/+$/, "");
+      }
+
+      function headers() {
+        const h = sameOriginRequest()
+          ? { "Content-Type": "application/json" }
+          : { "Content-Type": "text/plain;charset=UTF-8" };
+        const token = el.apiKey.value.trim();
+        if (token && sameOriginRequest()) h.Authorization = `Bearer ${token}`;
+        return h;
+      }
+
+      function withApiKey(path) {
+        const token = el.apiKey.value.trim();
+        if (!token || sameOriginRequest()) {
+          return path;
+        }
+
+        const separator = path.includes("?") ? "&" : "?";
+        return `${path}${separator}api_key=${encodeURIComponent(token)}`;
+      }
+
+      function sameOriginRequest() {
+        if (location.protocol !== "http:" && location.protocol !== "https:") {
+          return false;
+        }
+
+        return normalizeBaseUrl() === location.origin;
+      }
+
+      async function checkHealth() {
+        setBusy(true, "检测服务中...");
+        try {
+          const data = await request("/health", { method: "GET" });
+          el.healthText.textContent = data.ok ? "服务在线" : "服务异常";
+          el.raw.textContent = JSON.stringify(data, null, 2);
+          setToast("服务检测完成。");
+        } catch (error) {
+          el.healthText.textContent = "连接失败";
+          setToast(error.message, true);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function run() {
+        const mode = el.mode.value;
+        const prompt = el.prompt.value.trim();
+        if (!prompt) {
+          setToast("Prompt 不能为空。", true);
+          return;
+        }
+
+        setBusy(true, mode === "image" ? "生成图片中..." : "请求文本中...");
+        el.raw.textContent = "{}";
+        el.textResult.textContent = "--";
+
+        try {
+          if (mode === "image") {
+            await runImage(prompt);
+          } else {
+            await runChat(prompt);
+          }
+        } catch (error) {
+          setToast(error.message, true);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function runImage(prompt) {
+        const n = Math.max(1, Math.min(10, Number.parseInt(el.count.value || "1", 10)));
+        const payload = {
+          model: "codex-imagegen",
+          prompt,
+          n,
+        };
+
+        if (el.size.value.trim()) {
+          payload.size = el.size.value.trim();
+        }
+
+        const data = await request("/v1/images/generations", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+        el.raw.textContent = JSON.stringify(redactImages(data), null, 2);
+
+        const first = data.data?.[0]?.b64_json;
+        if (!first) {
+          throw new Error("响应里没有 data[0].b64_json。");
+        }
+
+        lastImageDataUrl = `data:image/png;base64,${first}`;
+        el.preview.innerHTML = `<img alt="generated image" src="${lastImageDataUrl}" />`;
+        el.downloadBtn.disabled = false;
+        setToast(`图片生成完成，共 ${data.data.length} 张。`);
+      }
+
+      async function runChat(prompt) {
+        const data = await request("/v1/chat/completions", {
+          method: "POST",
+          body: JSON.stringify({
+            model: "codex-cli",
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+
+        el.raw.textContent = JSON.stringify(data, null, 2);
+        el.textResult.textContent = data.choices?.[0]?.message?.content || "--";
+        setToast("文本请求完成。");
+      }
+
+      async function request(path, options) {
+        const res = await fetch(`${normalizeBaseUrl()}${withApiKey(path)}`, {
+          ...options,
+          headers: headers(),
+        });
+        const text = await res.text();
+        let data;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(`响应不是 JSON：${text.slice(0, 240)}`);
+        }
+
+        if (!res.ok) {
+          throw new Error(data.error?.message || `HTTP ${res.status}`);
+        }
+
+        return data;
+      }
+
+      function redactImages(data) {
+        return {
+          ...data,
+          data: Array.isArray(data.data)
+            ? data.data.map((item) => ({
+                ...item,
+                b64_json: item.b64_json ? `[base64 ${item.b64_json.length} chars]` : item.b64_json,
+              }))
+            : data.data,
+        };
+      }
+
+      function downloadImage() {
+        if (!lastImageDataUrl) return;
+        const a = document.createElement("a");
+        a.href = lastImageDataUrl;
+        a.download = `codex-image-${Date.now()}.png`;
+        a.click();
+      }
+
+      function setBusy(isBusy, message = "") {
+        el.runBtn.disabled = isBusy;
+        el.checkHealthBtn.disabled = isBusy;
+        if (message) setToast(message);
+      }
+
+      function setToast(message, isError = false) {
+        el.toast.textContent = message;
+        el.toast.classList.toggle("error", isError);
+      }
+    </script>
+  </body>
+</html>

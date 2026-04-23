@@ -38,3 +38,7 @@ docs/codex-openai-proxy.md
 Before exposing the proxy outside localhost, edit `CONFIG.requiredApiKey` in `codex-openai-proxy.mjs`.
 
 Do not commit real API keys, public server IPs, logs, `.env` files, or Codex local data.
+
+## Friendly Links
+
+[![LINUXDO](https://img.shields.io/badge/%E7%A4%BE%E5%8C%BA-LINUXDO-0086c9?style=for-the-badge&labelColor=555555)](https://linux.do)
